@@ -12,14 +12,29 @@ branca = (255, 255, 255)
 vermelho = (255, 0, 0)
 verde = (0, 255, 0)
 
-tamanho_quadro = 20
+tamanho_quadrado = 20
 velocidade = 15
 
 
 def gerar_comida():
-    comida_x = round(random.randrange(0, largura - tamanho_quadro) / 20.0) * 20.0
-    comida_y = round(random.randrange(0, altura - tamanho_quadro) / 20.0) * 20.0
+    comida_x = round(random.randrange(0, largura - tamanho_quadrado) / 20.0) * 20.0
+    comida_y = round(random.randrange(0, altura - tamanho_quadrado) / 20.0) * 20.0
     return comida_x, comida_y
+
+
+def desenhar_comida(comida_x, comida_y):
+    pygame.draw.rect(tela, vermelho, [comida_x, comida_y, tamanho_quadrado, tamanho_quadrado])
+
+
+def desenhar_cobra(tamanho_quadrado, pixeis_cobra):
+    for pixel in pixeis_cobra:
+        pygame.draw.rect(tela, verde, [pixel[0], pixel[1], tamanho_quadrado, tamanho_quadrado])
+
+
+def desenhar_pontuacao(pontuacao):
+    fonte = pygame.font.SysFont(None, 35)
+    texto = fonte.render("Pontuação: " + str(pontuacao), True, branca)
+    tela.blit(texto, [330, 0])
 
 
 def rodar_game():
@@ -34,14 +49,28 @@ def rodar_game():
     tamanho_cobra = 1
     pixeis_cobra = []
 
-    comida_x = gerar_comida()
-    comida_y = gerar_comida()
+    comida_x, comida_y = gerar_comida()
 
     while not fim_de_jogo:
         tela.fill(preta)
+        desenhar_comida(comida_x, comida_y)
+        pixeis_cobra.append([x, y])
+        if len(pixeis_cobra) > tamanho_cobra:
+            del pixeis_cobra[0]
+
+        for pixel in pixeis_cobra:
+            if pixel == [x, y] and pixel != pixeis_cobra[-1]:
+                fim_de_jogo = True
+
+        desenhar_cobra(tamanho_quadrado, pixeis_cobra)
+        desenhar_pontuacao(tamanho_cobra - 1)
+
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 fim_de_jogo = True
 
+        pygame.display.update()
+        relogio.tick(velocidade)
 
-rodar_game
+
+rodar_game()
