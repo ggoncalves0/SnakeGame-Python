@@ -37,6 +37,29 @@ def desenhar_pontuacao(pontuacao):
     tela.blit(texto, [330, 0])
 
 
+def verificar_colisao(x, y, pixeis_cobra):
+    corpo_sem_cabeca = pixeis_cobra[:-1]
+    for pixel in corpo_sem_cabeca:
+        if pixel == [x, y]:
+            return True
+    return False
+
+
+def selecionar_velocidade(tecla, velocidade_x_atual, velocidade_y_atual):
+    velocidade_x, velocidade_y = velocidade_x_atual, velocidade_y_atual
+
+    if tecla == pygame.K_LEFT and velocidade_x_atual == 0:
+        velocidade_x, velocidade_y = -tamanho_quadrado, 0
+    elif tecla == pygame.K_RIGHT and velocidade_x_atual == 0:
+        velocidade_x, velocidade_y = tamanho_quadrado, 0
+    elif tecla == pygame.K_UP and velocidade_y_atual == 0:
+        velocidade_x, velocidade_y = 0, -tamanho_quadrado
+    elif tecla == pygame.K_DOWN and velocidade_y_atual == 0:
+        velocidade_x, velocidade_y = 0, tamanho_quadrado
+
+    return velocidade_x, velocidade_y
+
+
 def rodar_game():
     fim_de_jogo = False
 
@@ -54,12 +77,19 @@ def rodar_game():
     while not fim_de_jogo:
         tela.fill(preta)
         desenhar_comida(comida_x, comida_y)
+
+        if x < 0 or x >= largura or y < 0 or y >= altura:
+            fim_de_jogo = True
+
+        x += velocidade_x
+        y += velocidade_y
+
         pixeis_cobra.append([x, y])
         if len(pixeis_cobra) > tamanho_cobra:
             del pixeis_cobra[0]
 
         for pixel in pixeis_cobra:
-            if pixel == [x, y] and pixel != pixeis_cobra[-1]:
+            if verificar_colisao(x, y, pixeis_cobra):
                 fim_de_jogo = True
 
         desenhar_cobra(tamanho_quadrado, pixeis_cobra)
@@ -68,6 +98,8 @@ def rodar_game():
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 fim_de_jogo = True
+            elif evento.type == pygame.KEYDOWN:
+                velocidade_x, velocidade_y = selecionar_velocidade(evento.key, velocidade_x, velocidade_y)
 
         pygame.display.update()
         if x == comida_x and y == comida_y:
