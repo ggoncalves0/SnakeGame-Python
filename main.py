@@ -27,7 +27,7 @@ def alternar_tela_cheia():
         tamanho_janela_anterior = (largura, altura)
         info = pygame.display.Info()
         largura, altura = info.current_w, info.current_h
-        tela = pygame.display.set_mode((largura, altura), pygame.FULLSCREEN)
+        tela = pygame.display.set_mode((largura, altura), pygame.NOFRAME | pygame.FULLSCREEN)
     else:
         largura, altura = tamanho_janela_anterior
         tela = pygame.display.set_mode((largura, altura), pygame.RESIZABLE)
