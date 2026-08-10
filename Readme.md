@@ -56,6 +56,5 @@ Ao colidir com a parede ou com o próprio corpo, o jogo exibe a pontuação fina
 - Projeto criado para fins de estudo/portfólio.
 
 ## 👨‍💻 Autor
-
-Gabriel Gonçalves de Oliveira
+Gabriel Gonçalves de Oliveira  
 📧 ggoncalvesy03@gmail.com
