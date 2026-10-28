@@ -5,7 +5,7 @@ pygame.init()
 pygame.display.set_caption("Snake Game Python")
 
 largura, altura = 800, 600
-tela = pygame.display.set_mode((largura, altura), pygame.RESIZABLE)
+tela = pygame.display.set_mode((largura, altura))
 relogio = pygame.time.Clock()
 
 preta = (0, 0, 0)
@@ -21,6 +21,13 @@ velocidade = 16
 tela_cheia = False
 tamanho_janela_anterior = (largura, altura)
 
+fonte_pontuacao = pygame.font.SysFont(None, 35)
+fonte_pausa_grande = pygame.font.SysFont(None, 60)
+fonte_pausa_pequena = pygame.font.SysFont(None, 30)
+fonte_over_grande = pygame.font.SysFont(None, 70)
+fonte_over_media = pygame.font.SysFont(None, 40)
+fonte_botao = pygame.font.SysFont(None, 32)
+
 
 def alternar_tela_cheia():
     global tela, tela_cheia, largura, altura, tamanho_janela_anterior
@@ -29,18 +36,20 @@ def alternar_tela_cheia():
         tamanho_janela_anterior = (largura, altura)
         info = pygame.display.Info()
         largura, altura = info.current_w, info.current_h
-        # NOFRAME em vez de FULLSCREEN: janela sem bordas do tamanho da tela.
-        # Evita o crash/fechamento ao minimizar que ocorre no modo fullscreen exclusivo.
         tela = pygame.display.set_mode((largura, altura), pygame.NOFRAME)
     else:
         largura, altura = tamanho_janela_anterior
-        tela = pygame.display.set_mode((largura, altura), pygame.RESIZABLE)
+        tela = pygame.display.set_mode((largura, altura))
 
 
-def gerar_comida():
-    comida_x = round(random.randrange(0, largura - tamanho_quadrado) / tamanho_quadrado) * tamanho_quadrado
-    comida_y = round(random.randrange(0, altura - tamanho_quadrado) / tamanho_quadrado) * tamanho_quadrado
-    return comida_x, comida_y
+def gerar_comida(pixeis_cobra=()):
+    colunas = largura // tamanho_quadrado
+    linhas = altura // tamanho_quadrado
+    while True:
+        comida_x = random.randrange(0, colunas) * tamanho_quadrado
+        comida_y = random.randrange(0, linhas) * tamanho_quadrado
+        if [comida_x, comida_y] not in pixeis_cobra:
+            return comida_x, comida_y
 
 
 def desenhar_comida(comida_x, comida_y):
@@ -53,8 +62,7 @@ def desenhar_cobra(tamanho_quadrado, pixeis_cobra):
 
 
 def desenhar_pontuacao(pontuacao):
-    fonte = pygame.font.SysFont(None, 35)
-    texto = fonte.render("Pontuação: " + str(pontuacao), True, branca)
+    texto = fonte_pontuacao.render("Pontuação: " + str(pontuacao), True, branca)
     posicao_x = largura // 2 - texto.get_width() // 2
     tela.blit(texto, [posicao_x, 10])
 
@@ -65,11 +73,8 @@ def desenhar_pausa():
     overlay.fill(preta)
     tela.blit(overlay, (0, 0))
 
-    fonte_grande = pygame.font.SysFont(None, 60)
-    fonte_pequena = pygame.font.SysFont(None, 30)
-
-    texto_pausa = fonte_grande.render("PAUSADO", True, branca)
-    texto_dica = fonte_pequena.render("Pressione ESC para continuar", True, branca)
+    texto_pausa = fonte_pausa_grande.render("PAUSADO", True, branca)
+    texto_dica = fonte_pausa_pequena.render("Pressione ESC para continuar", True, branca)
 
     tela.blit(texto_pausa, [largura // 2 - texto_pausa.get_width() // 2, altura // 2 - 40])
     tela.blit(texto_dica, [largura // 2 - texto_dica.get_width() // 2, altura // 2 + 20])
@@ -78,12 +83,8 @@ def desenhar_pausa():
 def desenhar_game_over(pontuacao):
     tela.fill(preta)
 
-    fonte_grande = pygame.font.SysFont(None, 70)
-    fonte_media = pygame.font.SysFont(None, 40)
-    fonte_botao = pygame.font.SysFont(None, 32)
-
-    texto_over = fonte_grande.render("GAME OVER", True, vermelho)
-    texto_pontos = fonte_media.render(f"Pontuação final: {pontuacao}", True, branca)
+    texto_over = fonte_over_grande.render("GAME OVER", True, vermelho)
+    texto_pontos = fonte_over_media.render(f"Pontuação final: {pontuacao}", True, branca)
 
     tela.blit(texto_over, [largura // 2 - texto_over.get_width() // 2, altura // 2 - 150])
     tela.blit(texto_pontos, [largura // 2 - texto_pontos.get_width() // 2, altura // 2 - 80])
@@ -130,10 +131,11 @@ def verificar_colisao_corpo(x, y, pixeis_cobra):
 
 
 def verificar_colisao_parede(x, y):
-    return x < 0 or x >= largura or y < 0 or y >= altura
+    return x < 0 or x + tamanho_quadrado > largura or y < 0 or y + tamanho_quadrado > altura
 
 
 def selecionar_velocidade(tecla, velocidade_x_atual, velocidade_y_atual):
+    """Recebe a última direção REALMENTE executada, para impedir reversão de 180°."""
     velocidade_x, velocidade_y = velocidade_x_atual, velocidade_y_atual
 
     if tecla in (pygame.K_LEFT, pygame.K_a) and velocidade_x_atual == 0:
@@ -149,8 +151,9 @@ def selecionar_velocidade(tecla, velocidade_x_atual, velocidade_y_atual):
 
 
 def estado_inicial():
-    x = largura / 2
-    y = altura / 2
+    # Alinhado à grade, para a cobra sempre conseguir encontrar a comida
+    x = (largura // 2 // tamanho_quadrado) * tamanho_quadrado
+    y = (altura // 2 // tamanho_quadrado) * tamanho_quadrado
     velocidade_x, velocidade_y = 0, 0
     tamanho_cobra = 1
     pixeis_cobra = []
@@ -158,14 +161,13 @@ def estado_inicial():
 
 
 def rodar_game():
-    global largura, altura, tela
-
     rodando = True
     estado = 'jogando'
     pausado = False
 
     x, y, velocidade_x, velocidade_y, tamanho_cobra, pixeis_cobra = estado_inicial()
-    comida_x, comida_y = gerar_comida()
+    ultima_vx, ultima_vy = 0, 0
+    comida_x, comida_y = gerar_comida(pixeis_cobra)
 
     botao_jogar_rect = None
     botao_sair_rect = None
@@ -175,23 +177,27 @@ def rodar_game():
             if evento.type == pygame.QUIT:
                 rodando = False
 
-            elif evento.type == pygame.VIDEORESIZE and not tela_cheia:
-                largura, altura = evento.w, evento.h
-                tela = pygame.display.set_mode((largura, altura), pygame.RESIZABLE)
-
             elif evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_F11:
                     alternar_tela_cheia()
+                    # A área de jogo mudou de tamanho: reinicia a partida
+                    # para não deixar cobra/comida fora dos limites.
+                    x, y, velocidade_x, velocidade_y, tamanho_cobra, pixeis_cobra = estado_inicial()
+                    ultima_vx, ultima_vy = 0, 0
+                    comida_x, comida_y = gerar_comida(pixeis_cobra)
+                    pausado = False
+                    estado = 'jogando'
                 elif estado == 'jogando':
                     if evento.key == pygame.K_ESCAPE:
                         pausado = not pausado
                     elif not pausado:
-                        velocidade_x, velocidade_y = selecionar_velocidade(evento.key, velocidade_x, velocidade_y)
+                        velocidade_x, velocidade_y = selecionar_velocidade(evento.key, ultima_vx, ultima_vy)
 
             elif evento.type == pygame.MOUSEBUTTONDOWN and estado == 'game_over':
                 if botao_jogar_rect and botao_jogar_rect.collidepoint(evento.pos):
                     x, y, velocidade_x, velocidade_y, tamanho_cobra, pixeis_cobra = estado_inicial()
-                    comida_x, comida_y = gerar_comida()
+                    ultima_vx, ultima_vy = 0, 0
+                    comida_x, comida_y = gerar_comida(pixeis_cobra)
                     pausado = False
                     estado = 'jogando'
                 elif botao_sair_rect and botao_sair_rect.collidepoint(evento.pos):
@@ -200,6 +206,7 @@ def rodar_game():
         if estado == 'jogando' and not pausado:
             x += velocidade_x
             y += velocidade_y
+            ultima_vx, ultima_vy = velocidade_x, velocidade_y
 
             colidiu = verificar_colisao_parede(x, y)
 
@@ -214,8 +221,8 @@ def rodar_game():
                 estado = 'game_over'
 
             if x == comida_x and y == comida_y:
-                comida_x, comida_y = gerar_comida()
                 tamanho_cobra += 1
+                comida_x, comida_y = gerar_comida(pixeis_cobra)
 
         tela.fill(preta)
 
